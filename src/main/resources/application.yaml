@@ -1,0 +1,10 @@
+postgres:
+  user: postgres
+  url: 'jdbc:postgresql://db:5432/prescient'
+ktor:
+  deployment:
+    host: 0.0.0.0
+    port: 8081
+  application:
+    modules:
+      - net.molteno.linus.prescient.ApplicationKt.module

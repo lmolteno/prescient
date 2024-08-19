@@ -1,0 +1,6 @@
+tmp/
+venv/
+.idea/
+.gradle/
+build/
+sun.json
