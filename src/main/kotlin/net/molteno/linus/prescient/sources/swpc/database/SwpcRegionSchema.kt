@@ -35,7 +35,7 @@ data class DbSolarRegionObservation(
 @Serializable
 data class DbSolarRegionObservationMetadata(
     val location: String,
-    val carringtonLongitude: Int,
+    val carringtonLongitude: Int?,
     val area: Int,
     val spotClass: String?,
     val extent: Int,
@@ -124,7 +124,26 @@ class SwpcRegionSchema(database: Database) {
     }
 
     suspend fun read(start: LocalDate, end: LocalDate) = dbQuery {
-        SolarRegion.selectAll().where { observedDate.between(start, end) }
+        SolarRegion.selectAll()
+            .where { observedDate.between(start, end) }
+            .orderBy(observedDate)
+            .map {
+                DbSolarRegionObservation(
+                    it[id],
+                    it[region],
+                    it[observedDate],
+                    it[firstDate],
+                    it[latitude],
+                    it[longitude],
+                    it[metadata]
+                )
+            }
+    }
+
+    suspend fun readRegion(regionId: Int) = dbQuery {
+        SolarRegion.selectAll()
+            .where { region.eq(regionId) }
+            .orderBy(observedDate)
             .map {
                 DbSolarRegionObservation(
                     it[id],

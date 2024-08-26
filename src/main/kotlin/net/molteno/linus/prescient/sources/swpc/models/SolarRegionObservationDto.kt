@@ -11,7 +11,7 @@ data class SolarRegionObservationDto (
     val longitude: Int?,
     val location: String?,
     val observedDate: String, // iso 8601
-    val carringtonLongitude: Int,
+    val carringtonLongitude: Int?,
     val area: Int?,
     val spotClass: String?,
     val extent: Int?,
@@ -36,7 +36,7 @@ data class SolarRegionObservation (
     val longitude: Int,
     val location: String,
     val observedDate: LocalDate, // iso 8601
-    val carringtonLongitude: Int,
+    val carringtonLongitude: Int?,
     val area: Int,
     val spotClass: String?,
     val extent: Int,
