@@ -5,25 +5,59 @@ import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlinx.serialization.ExperimentalSerializationApi
 import net.molteno.linus.prescient.sources.sdo.database.SdoSchema
+import net.molteno.linus.prescient.sources.swpc.database.SwpcRegionSchema
 import org.jetbrains.exposed.sql.Database
 import java.sql.DriverManager
 import java.util.*
 
-@OptIn(ExperimentalSerializationApi::class)
 fun Application.configureDatabases(): Database {
     val db = connectToPostgres(embedded = environment.developmentMode)
     val sdo = SdoSchema(db)
+    val swpcRegions = SwpcRegionSchema(db)
 
     routing {
-        get("/hmi") {
+        get("/sdo/hmi") {
             try {
                 val start = call.request.queryParameters["start"]?.let { Instant.parse(it) }
                 val end = call.request.queryParameters["end"]?.let { Instant.parse(it) }
 
                 if (start != null && end != null) {
                     val observations = sdo.read(start, end)
+                    call.respond(HttpStatusCode.OK, observations)
+                } else {
+                    call.respond(HttpStatusCode.BadRequest)
+                }
+            } catch (e: IllegalArgumentException) {
+                call.respond(HttpStatusCode.BadRequest)
+            }
+        }
+
+        get("/swpc/region") {
+            try {
+                val start = call.request.queryParameters["start"]?.let { Instant.parse(it).toLocalDateTime(TimeZone.UTC).date }
+                val end = call.request.queryParameters["end"]?.let { Instant.parse(it).toLocalDateTime(TimeZone.UTC).date }
+
+                if (start != null && end != null) {
+                    val observations = swpcRegions.read(start, end)
+                    call.respond(HttpStatusCode.OK, observations)
+                } else {
+                    call.respond(HttpStatusCode.BadRequest)
+                }
+            } catch (e: IllegalArgumentException) {
+                call.respond(HttpStatusCode.BadRequest)
+            }
+        }
+
+        get("/swpc/region/{region}") {
+            try {
+                val regionId = call.parameters["region"]?.toIntOrNull()
+
+                if (regionId != null) {
+                    val observations = swpcRegions.readRegion(regionId)
                     call.respond(HttpStatusCode.OK, observations)
                 } else {
                     call.respond(HttpStatusCode.BadRequest)
