@@ -2,6 +2,8 @@ name: Push to GHCR
 
 on:
   push:
+    branches:
+      - main
     tags:
       - v*
 

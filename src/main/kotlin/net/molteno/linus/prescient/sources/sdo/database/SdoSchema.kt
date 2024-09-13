@@ -87,4 +87,13 @@ class SdoSchema(database: Database) {
             )
         }
     }
+
+    suspend fun getLatestObservation(): Instant? = dbQuery {
+        HmiObservation
+            .select(observationTime)
+            .orderBy(observationTime to SortOrder.DESC)
+            .limit(1)
+            .map { it[observationTime] }
+            .firstOrNull()
+    }
 }

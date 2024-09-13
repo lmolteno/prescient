@@ -8,6 +8,7 @@ val ktor_version: String by project
 val javacv_version: String by project
 val multik_version: String by project
 val exposedVersion: String by project
+val cache4k_version: String by project
 
 plugins {
     kotlin("jvm") version "2.0.0"
@@ -42,6 +43,7 @@ dependencies {
 
     implementation("org.postgresql:postgresql:$postgres_version")
     implementation("com.h2database:h2:$h2_version")
+    implementation("io.github.reactivecircus.cache4k:cache4k:$cache4k_version")
     implementation("ch.qos.logback:logback-classic:$logback_version")
     implementation("org.bytedeco:javacv:$javacv_version")
     implementation("org.bytedeco:javacv-platform:$javacv_version")
