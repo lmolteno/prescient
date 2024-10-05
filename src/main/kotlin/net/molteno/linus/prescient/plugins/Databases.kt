@@ -7,7 +7,6 @@ import io.ktor.server.routing.*
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlinx.serialization.ExperimentalSerializationApi
 import net.molteno.linus.prescient.sources.sdo.database.SdoSchema
 import net.molteno.linus.prescient.sources.swpc.database.SwpcRegionSchema
 import org.jetbrains.exposed.sql.Database
@@ -33,6 +32,15 @@ fun Application.configureDatabases(): Database {
                 }
             } catch (e: IllegalArgumentException) {
                 call.respond(HttpStatusCode.BadRequest)
+            }
+        }
+
+        get("/sdo/hmi/latest") {
+            val observation = sdo.readLatest()
+            if (observation != null) {
+                call.respond(HttpStatusCode.OK, observation)
+            } else {
+                call.respond(HttpStatusCode.NoContent)
             }
         }
 

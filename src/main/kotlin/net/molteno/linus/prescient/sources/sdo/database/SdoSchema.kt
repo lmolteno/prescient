@@ -96,4 +96,21 @@ class SdoSchema(database: Database) {
             .map { it[observationTime] }
             .firstOrNull()
     }
+
+    suspend fun readLatest(): SdoHmiObservationWithId? = dbQuery {
+        HmiObservation
+            .select(observationTime)
+            .orderBy(observationTime to SortOrder.DESC)
+            .limit(1)
+            .map {
+                SdoHmiObservationWithId(
+                    it[HmiObservation.id],
+                    it[observationTime],
+                    it[processedTime],
+                    it[umbraContours],
+                    it[penumbraContours]
+                )
+            }
+            .firstOrNull()
+    }
 }

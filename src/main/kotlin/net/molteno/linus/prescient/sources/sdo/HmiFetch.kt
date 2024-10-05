@@ -159,7 +159,7 @@ enum class ImageScale(val repr: String, val denominator: Int) {
 }
 
 @Serializable
-private data class TimesResponse(val first: String, val last: String);
+private data class TimesResponse(val first: String, val last: String)
 
 private val client = HttpClient(CIO) {
     install(ContentNegotiation) { json() }
@@ -180,7 +180,7 @@ suspend fun getLatestTime(): Instant? {
 }
 
 suspend fun getHmiImage(time: Instant, scale: ImageScale): SunHmiImage? {
-    val client = HttpClient(CIO) { install(HttpTimeout) { requestTimeoutMillis = 60_000 } }
+    val client = HttpClient(CIO) { install(HttpTimeout) { requestTimeoutMillis = 300_000 } }
     val res: HttpResponse = client.get("http://jsoc.stanford.edu/data/hmi/images/${time.format(instantFormat)}_Ic_flat_${scale.repr}.jpg") {
 //        onDownload { bytesSentTotal, contentLength ->
 //            println("Received $bytesSentTotal bytes from $contentLength")
