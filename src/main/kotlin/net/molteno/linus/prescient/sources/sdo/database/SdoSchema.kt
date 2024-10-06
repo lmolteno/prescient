@@ -6,6 +6,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import net.molteno.linus.prescient.sources.sdo.Contour
+import net.molteno.linus.prescient.sources.sdo.database.SdoSchema.HmiObservation.id
 import net.molteno.linus.prescient.sources.sdo.database.SdoSchema.HmiObservation.observationTime
 import net.molteno.linus.prescient.sources.sdo.database.SdoSchema.HmiObservation.penumbraContours
 import net.molteno.linus.prescient.sources.sdo.database.SdoSchema.HmiObservation.processedTime
@@ -57,7 +58,7 @@ class SdoSchema(database: Database) {
             it[processedTime] = observation.processed
             it[umbraContours] = observation.umbraContours
             it[penumbraContours] = observation.penumbraContours
-        }[HmiObservation.id]
+        }[id]
     }
 
     suspend fun read(obsTime: Instant): SdoHmiObservationWithId? = dbQuery {
@@ -66,7 +67,7 @@ class SdoSchema(database: Database) {
             .limit(1)
             .map {
                 SdoHmiObservationWithId(
-                    it[HmiObservation.id],
+                    it[id],
                     it[observationTime],
                     it[processedTime],
                     it[umbraContours],
@@ -79,7 +80,7 @@ class SdoSchema(database: Database) {
     suspend fun read(start: Instant, end: Instant): List<SdoHmiObservationWithId> = dbQuery {
         HmiObservation.selectAll().where { observationTime.between(start, end) }.map {
             SdoHmiObservationWithId(
-                it[HmiObservation.id],
+                it[id],
                 it[observationTime],
                 it[processedTime],
                 it[umbraContours],
@@ -99,12 +100,12 @@ class SdoSchema(database: Database) {
 
     suspend fun readLatest(): SdoHmiObservationWithId? = dbQuery {
         HmiObservation
-            .select(observationTime)
+            .selectAll()
             .orderBy(observationTime to SortOrder.DESC)
             .limit(1)
             .map {
                 SdoHmiObservationWithId(
-                    it[HmiObservation.id],
+                    it[id],
                     it[observationTime],
                     it[processedTime],
                     it[umbraContours],
