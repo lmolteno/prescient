@@ -83,6 +83,8 @@ data class Contour(val coordinates: List<Coordinate>) {
     fun remap(min: Float, max: Float): Contour {
         return this.copy(coordinates = coordinates.map { Coordinate((it.x - min) / (max - min), (it.y - min) / (max - min)) })
     }
+
+    fun valid() = coordinates.all { it.x < 1f && it.y < 1f }
 }
 
 private fun getMatForImg(img: Mat): Mat {
@@ -198,10 +200,12 @@ suspend fun getHmiImage(time: Instant, scale: ImageScale): SunHmiImage? {
     val penumbraContours = getContours(img, PENUMBRA_LEVEL)
         .filter { (10.0..100_000.0).contains(it.area()) }
         .map { it.remap(SUN_MIN / scale.denominator, SUN_MAX / scale.denominator) }
+        .filter { it.valid() }
 
     val umbraContours = getContours(img, UMBRA_LEVEL)
         .filter { (10.0..100_000.0).contains(it.area()) }
         .map { it.remap(SUN_MIN / scale.denominator, SUN_MAX / scale.denominator) }
+        .filter { it.valid() }
 
     return SunHmiImage(umbraContours, penumbraContours)
 }
