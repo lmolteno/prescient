@@ -1,8 +1,8 @@
 """SWPC solar-region models and parsing.
 
 Mirrors the NOAA ``solar_regions.json`` feed. The raw feed is permissive
-(many nullable fields); :func:`to_observation` applies the same "drop the row
-if a required field is missing" rules the original Kotlin service used.
+(many nullable fields); :func:`to_observation` drops any row missing a field
+we treat as required.
 """
 
 from __future__ import annotations
@@ -78,7 +78,7 @@ def to_observation(raw: SolarRegionRaw) -> SolarRegionObservation | None:
     """Convert a raw feed row to an observation, or ``None`` if incomplete.
 
     Required fields (dropped if missing): latitude, longitude, location, area,
-    extent, number_spots. Matches the original service's validation.
+    extent, number_spots.
     """
     if raw.latitude is None or raw.longitude is None or raw.location is None:
         return None

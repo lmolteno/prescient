@@ -13,6 +13,7 @@ import structlog
 from prescient.config import get_settings
 from prescient.db import create_engine, create_session_factory
 from prescient.logging import configure_logging
+from prescient.poller.gfz_job import run_gfz_poller
 from prescient.poller.hmi_job import run_hmi_poller
 from prescient.poller.swpc_job import run_swpc_poller
 
@@ -42,6 +43,13 @@ async def run() -> None:
                     image_base_url=settings.hmi_image_base_url,
                     idle_interval_seconds=settings.hmi_poll_interval_seconds,
                     backfill_days=settings.hmi_backfill_days,
+                )
+            )
+            tg.create_task(
+                run_gfz_poller(
+                    factory,
+                    interval_seconds=settings.gfz_poll_interval_seconds,
+                    hp30_url=settings.gfz_hp30_url,
                 )
             )
     finally:

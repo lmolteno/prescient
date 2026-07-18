@@ -2,9 +2,7 @@
 
 Mirrors the NOAA ``edited_events.json`` feed. A single raw row maps to one of
 several event kinds depending on its ``type`` code; type-specific fields come
-out of the positional ``particulars1..10`` columns. This is the feature the
-original Kotlin service parsed but never persisted — here it is stored and
-served.
+out of the positional ``particulars1..10`` columns.
 """
 
 from __future__ import annotations
@@ -62,26 +60,30 @@ class FlareBrightness(StrEnum):
 
 class FlareCharacteristic(StrEnum):
     VWL = "VWL"  # visible in white light
-    UMB = "UMB"  # >= 20% umbral coverage
+    UMB = "UMB"  # greater than or equal to 20% umbral coverage
     PRB = "PRB"  # parallel ribbon
-    LPS = "LPS"  # associated loop prominence
+    LPS = "LPS"  # associated loop prominence (LPS)
     YSR = "YSR"  # Y-shaped ribbon
     ERU = "ERU"  # several eruptive centers
     BPT = "BPT"  # one or more brilliant points
     HSS = "HSS"  # associated high speed dark or bright surge
     DSD = "DSD"  # dark surge on the disk
-    DSF = "DSF"  # flare followed filament disappearance
-    BLU = "BLU"  # H-alpha emission greater in blue wing than red
+    DSF = "DSF"  # flare followed the disappearance of a solar filament in the same region
+    BLU = "BLU"  # H-alpha emission greater in the blue wing than in the red wing
 
 
 class RadioBurstType(StrEnum):
-    II = "II"
-    III = "III"
-    IV = "IV"
-    V = "V"
+    II = "II"  # slow drift burst
+    III = "III"  # fast drift burst
+    IV = "IV"  # broadband smooth continuum burst
+    V = "V"  # brief continuum burst, generally associated with Type III bursts
+    # Series of Type III bursts over a period of 10 minutes or more, with no
+    # period longer than 30 minutes without activity.
     VI = "VI"
+    # Series of Type III and Type V bursts over a period of 10 minutes or more,
+    # with no period longer than 30 minutes without activity.
     VII = "VII"
-    CTM = "CTM"
+    CTM = "CTM"  # broadband, long-lived, dekametric continuum
 
 
 class SolarEventRaw(BaseModel):
@@ -134,10 +136,25 @@ class SolarEventRaw(BaseModel):
         ]
 
 
+# Shared explanation of the event's begin/max/end timing, applied to
+# begin_datetime below (and surfaced in the API schema).
+_TIMING_DESCRIPTION = (
+    "The begin time of an x-ray event is defined as the first minute, in a "
+    "sequence of 4 minutes, of steep monotonic increase in 0.1-0.8 nm flux. "
+    "The x-ray event maximum is taken as the minute of the peak x-ray flux. "
+    "The end time is the time when the flux level decays to a point halfway "
+    "between the maximum flux and the pre-flare background level.\n\n"
+    "The begin time of an SXI flare (XFL) is minutes following the associated "
+    "x-ray event. The maximum time is the most intense period in the brightest "
+    "region of the SXI image. The end time is the last SXI image before the "
+    "x-ray event end time."
+)
+
+
 class _EventBase(BaseModel):
     region: int | None
     event_id: int
-    begin_datetime: dt.datetime
+    begin_datetime: dt.datetime = Field(description=_TIMING_DESCRIPTION)
     begin_quality: str | None
     max_datetime: dt.datetime | None
     max_quality: str | None
@@ -153,22 +170,43 @@ class _EventBase(BaseModel):
 
 class XrayEvent(_EventBase):
     kind: Literal["xray"] = "xray"
-    frequency: str
+    frequency: str = Field(description="MHz")
     x_ray_class: str
 
 
 class FlareEvent(_EventBase):
     kind: Literal["flare"] = "flare"
     location: str
-    importance: str  # single char: S, 1, 2, 3, 4
-    brightness: FlareBrightness
+    importance: str = Field(
+        description=(
+            "Corrected area of the flare in heliospheric square degrees at "
+            "maximum brightness, observed in the H-alpha line (656.3 nm):\n"
+            "  S - Subflare (area <= 2.0 square degrees)\n"
+            "  1 - Importance 1 ( 2.1 <= area <=  5.1 square degrees)\n"
+            "  2 - Importance 2 ( 5.2 <= area <= 12.4 square degrees)\n"
+            "  3 - Importance 3 (12.5 <= area <= 24.7 square degrees)\n"
+            "  4 - Importance 4 (area >= 24.8 square degrees)"
+        )
+    )
+    brightness: FlareBrightness = Field(
+        description=(
+            "Relative maximum brightness of the flare in H-alpha: "
+            "F - faint, N - normal, B - brilliant."
+        )
+    )
     characteristics: list[FlareCharacteristic]
 
 
 class FixedRadioBurstEvent(_EventBase):
     kind: Literal["fixed_radio_burst"] = "fixed_radio_burst"
     frequency: int
-    max_brightness: int
+    max_brightness: int = Field(
+        description=(
+            "The peak value above pre-burst background of associated radio "
+            "bursts at frequencies 245, 410, 610, 1415, 2695, 4995, 8800 and "
+            "15400 MHz: 1 flux unit = 10^-22 W m^-2 Hz^-1."
+        )
+    )
 
 
 class SweptRadioBurstEvent(_EventBase):
@@ -176,7 +214,9 @@ class SweptRadioBurstEvent(_EventBase):
     frequency_min: int
     frequency_max: int
     radio_burst_type: RadioBurstType
-    intensity: int
+    intensity: int = Field(
+        description="Relative scale: 1 = Minor, 2 = Significant, 3 = Major."
+    )
 
 
 class GenericSolarEvent(_EventBase):

@@ -13,6 +13,7 @@ from typing import Any
 from sqlalchemy import (
     Date,
     DateTime,
+    Float,
     Integer,
     String,
     UniqueConstraint,
@@ -94,3 +95,21 @@ class SolarEvent(Base):
             name="uq_solar_event_natural_key",
         ),
     )
+
+
+class HpoIndex(Base):
+    """A half-hourly Hp30/ap30 geomagnetic activity index from GFZ Potsdam.
+
+    Both indices are unitless. ``hp30``/``ap30`` are null where the feed
+    reports missing data.
+    """
+
+    __tablename__ = "hpo_index"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    # Start of the 30-minute interval the values describe (UTC).
+    time: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, unique=True, index=True
+    )
+    hp30: Mapped[float | None] = mapped_column(Float, nullable=True)
+    ap30: Mapped[int | None] = mapped_column(Integer, nullable=True)

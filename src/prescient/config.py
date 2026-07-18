@@ -39,11 +39,13 @@ class Settings(BaseSettings):
     hmi_poll_interval_seconds: float = 60.0  # idle poll when caught up
     # How far back to backfill HMI observations on a cold start.
     hmi_backfill_days: int = 7
+    gfz_poll_interval_seconds: float = 600.0  # 10 minutes (Hp30 updates every 30)
 
     # --- Source endpoints (overridable for tests) ---
     swpc_base_url: str = "https://services.swpc.noaa.gov"
     hmi_times_url: str = "https://jsoc1.stanford.edu/data/hmi/images/image_times.json"
     hmi_image_base_url: str = "http://jsoc.stanford.edu/data/hmi/images"
+    gfz_hp30_url: str = "https://kp.gfz.de/app/files/Hp30_ap30_nowcast.txt"
 
 
 @lru_cache

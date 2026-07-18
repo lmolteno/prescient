@@ -1,7 +1,5 @@
 """SDO/HMI image processing: threshold a continuum image and extract sunspot
 umbra/penumbra contours, normalized to the solar disk.
-
-Ports the original Kotlin/OpenCV pipeline to ``cv2`` + ``numpy``.
 """
 
 from __future__ import annotations
@@ -41,7 +39,7 @@ class ImageScale(Enum):
 
 
 class Coordinate(BaseModel):
-    """A 2D point. Serializes as ``[x, y]`` to match the original wire format."""
+    """A 2D point. Serializes compactly as ``[x, y]``."""
 
     x: float
     y: float

@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from prescient.api.deps import get_session_factory
-from prescient.api.routes import sdo, swpc
+from prescient.api.routes import geomag, sdo, swpc
 from prescient.config import Settings, get_settings
 from prescient.db import create_engine, create_session_factory
 from prescient.logging import configure_logging
@@ -33,7 +33,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(
         title="Prescient",
         version="0.1.0",
-        summary="Space-weather data: SWPC solar regions/events and SDO/HMI sunspot contours.",
+        summary=(
+            "Space-weather data: SWPC solar regions/events, SDO/HMI sunspot "
+            "contours, and GFZ Hp30/ap30 geomagnetic indices."
+        ),
         lifespan=lifespan,
     )
 
@@ -43,4 +46,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(swpc.router)
     app.include_router(sdo.router)
+    app.include_router(geomag.router)
     return app
