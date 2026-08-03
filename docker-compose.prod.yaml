@@ -1,0 +1,75 @@
+# Production deployment: pulls the pre-built image from GHCR.
+#
+# Usage:
+#   1. Create a .env file next to this one (see the variables referenced below).
+#   2. docker compose -f docker-compose.prod.yaml pull
+#   3. docker compose -f docker-compose.prod.yaml up -d
+#
+# Required in .env:
+#   POSTGRES_PASSWORD=<a strong password>
+# Optional in .env:
+#   PRESCIENT_IMAGE=ghcr.io/lmolteno/prescient:latest   # pin to a version tag in prod
+#   API_PORT=8080
+
+x-app: &app
+  image: ${PRESCIENT_IMAGE:-ghcr.io/lmolteno/prescient:latest}
+  environment: &app-env
+    PRESCIENT_DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/prescient
+    PRESCIENT_LOG_JSON: "true"
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    shm_size: 256mb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: prescient
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d prescient"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Runs migrations to completion, then exits. api/poller wait for success.
+  migrate:
+    image: ${PRESCIENT_IMAGE:-ghcr.io/lmolteno/prescient:latest}
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      PRESCIENT_DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/prescient
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    <<: *app
+    restart: unless-stopped
+    command: ["prescient-api"]
+    ports:
+      - "${API_PORT:-8080}:8080"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8080/health').status==200 else 1)
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # Exactly one poller — it owns ingestion. Do not scale this service.
+  poller:
+    <<: *app
+    restart: unless-stopped
+    command: ["prescient-poller"]
+
+volumes:
+  pgdata:
