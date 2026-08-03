@@ -1,14 +1,6 @@
 services:
-  web:
-    image: ghcr.io/lmolteno/prescient:latest
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    depends_on:
-      db:
-        condition: service_healthy
   db:
-    image: postgres
+    image: postgres:16
     restart: unless-stopped
     volumes:
       - ./db:/var/lib/postgresql/data
@@ -16,5 +8,40 @@ services:
       POSTGRES_DB: prescient
       POSTGRES_HOST_AUTH_METHOD: trust
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
-      interval: 1s
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  migrate:
+    build: .
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      PRESCIENT_DATABASE_URL: postgresql+asyncpg://postgres@db:5432/prescient
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    build: .
+    restart: unless-stopped
+    command: ["prescient-api"]
+    ports:
+      - "8080:8080"
+    environment:
+      PRESCIENT_DATABASE_URL: postgresql+asyncpg://postgres@db:5432/prescient
+      PRESCIENT_LOG_JSON: "true"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  poller:
+    build: .
+    restart: unless-stopped
+    command: ["prescient-poller"]
+    environment:
+      PRESCIENT_DATABASE_URL: postgresql+asyncpg://postgres@db:5432/prescient
+      PRESCIENT_LOG_JSON: "true"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully

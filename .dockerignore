@@ -1,0 +1,14 @@
+.git
+.venv
+db/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.env
+tmp/
+src/main
+build.gradle.kts
+settings.gradle.kts
+gradle/
+gradlew*
